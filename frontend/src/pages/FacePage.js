@@ -30,7 +30,7 @@ export default function FacePage({ user, setStep }) {
         if (res.data.status === "verified") {
           clearInterval(interval);
           alert("Face Verified Successfully");
-          setStep("voting");
+          setStep("mode");
         }
 
       } catch (err) {

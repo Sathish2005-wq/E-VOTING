@@ -204,25 +204,46 @@ def verify_face():
 @app.route("/vote", methods=["POST"])
 def vote():
 
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    if not data or "qr_string" not in data or "candidate" not in data:
-        return jsonify({"status": "invalid_request"}), 400
+        if not data:
+            return jsonify({"status": "invalid_request", "reason": "No JSON received"}), 400
 
-    qr_string = data["qr_string"]
-    candidate = data["candidate"]
+        if "qr_string" not in data:
+            return jsonify({"status": "invalid_request", "reason": "qr_string missing"}), 400
 
-    voted = load_json("voted_status.json")
-    mode = load_mode()
+        if "candidate" not in data:
+            return jsonify({"status": "invalid_request", "reason": "candidate missing"}), 400
 
-    if mode == "REAL":
-        if voted.get(qr_string):
-            return jsonify({"status": "already_voted"})
+        qr_string = data["qr_string"].strip()
+        candidate = data["candidate"]
 
-    voted[qr_string] = candidate
-    save_json("voted_status.json", voted)
+        database = load_json("voter_database.json")
+        voted = load_json("voted_status.json")
+        mode = load_mode()
 
-    return jsonify({"status": "vote_success", "mode": mode})
+        # 🔐 Check voter exists
+        if qr_string not in database:
+            return jsonify({"status": "not_registered"}), 400
+
+        # 🔐 REAL MODE → block double vote
+        if mode == "REAL":
+            if qr_string in voted:
+                return jsonify({"status": "already_voted"})
+
+        # 🗳 Save vote
+        voted[qr_string] = candidate
+        save_json("voted_status.json", voted)
+
+        print("Vote saved for:", qr_string)
+        print("Candidate:", candidate)
+
+        return jsonify({"status": "vote_success", "mode": mode})
+
+    except Exception as e:
+        print("Vote Error:", str(e))
+        return jsonify({"status": "server_error"}), 500
 
 # ==========================
 # START SERVER

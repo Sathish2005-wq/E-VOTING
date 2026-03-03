@@ -5,6 +5,8 @@ import FacePage from "./pages/FacePage";
 import VotingPage from "./pages/VotingPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminMode from "./pages/AdminMode";
+import AccessibleVotingPage from "./pages/AccessibleVotingPage";
+import ModeSelectionPage from "./pages/ModeSelectionPage";
 
 function App() {
 
@@ -23,10 +25,13 @@ function App() {
       {step === "qr" && <QrPage setStep={setStep} setUser={setUser} />}
       {step === "details" && <DetailsPage user={user} setStep={setStep} />}
       {step === "face" && <FacePage user={user} setStep={setStep} />}
+      {step === "mode" && <ModeSelectionPage setStep={setStep} />}
       {step === "voting" && <VotingPage user={user} />}
+      {step === "accessible" && <AccessibleVotingPage user={user} />}
       {step === "register" && <RegisterPage />}
       {step === "admin" && <AdminMode />}
-
+      
+      
     </div>
   );
 }

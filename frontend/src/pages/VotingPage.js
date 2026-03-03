@@ -7,35 +7,41 @@ export default function VotingPage({ user }) {
   const vote = async (candidate) => {
 
     try {
+
       const res = await axios.post(
         `${API}/vote`,
         {
-          voter_id: user.voter_id,
+          qr_string: user.qr_string,   // IMPORTANT
           candidate: candidate
         }
       );
 
-      alert(res.data.status);
+      if (res.data.status === "vote_success") {
+        alert("Vote Successful 🎉");
+      } else if (res.data.status === "already_voted") {
+        alert("Already Voted ❌");
+      } else {
+        alert("Vote Failed");
+      }
 
     } catch (error) {
+      console.log("Vote Error:", error.response?.data);
       alert("Vote Failed");
     }
   };
 
   return (
-    <div>
+    <div style={{ textAlign: "center" }}>
       <h2>Select Candidate</h2>
 
-      <button onClick={() => vote("Candidate 1")}>
-        Candidate 1
+      <button onClick={() => vote("Candidate_A")}>
+        Candidate A
       </button>
 
-      <button onClick={() => vote("Candidate 2")}>
-        Candidate 2
-      </button>
+      <br /><br />
 
-      <button onClick={() => vote("Candidate 3")}>
-        Candidate 3
+      <button onClick={() => vote("Candidate_B")}>
+        Candidate B
       </button>
     </div>
   );
