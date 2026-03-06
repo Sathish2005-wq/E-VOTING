@@ -138,11 +138,8 @@ def verify_face():
 
     data = request.get_json()
 
-    if not data or "qr_string" not in data or "image" not in data:
-        return jsonify({"status": "invalid_request"}), 400
-
-    qr_string = data["qr_string"].strip()
-    image_data = data["image"]
+    qr_string = data.get("qr_string")
+    image_data = data.get("image")
 
     database = load_json("voter_database.json")
 
@@ -152,48 +149,41 @@ def verify_face():
     face_file = database[qr_string]["face_file"]
     stored_path = f"voters/{face_file}"
 
-    if not os.path.exists(stored_path):
-        return jsonify({"status": "face_not_found"})
+    # Decode webcam image
+    img_bytes = base64.b64decode(image_data.split(",")[1])
+    nparr = np.frombuffer(img_bytes, np.uint8)
+    img_live = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    try:
-        # Decode live image
-        img_bytes = base64.b64decode(image_data.split(",")[1])
-        nparr = np.frombuffer(img_bytes, np.uint8)
-        img_live = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    img_stored = face_recognition.load_image_file(stored_path)
 
-        # Convert BGR → RGB
-        img_live = cv2.cvtColor(img_live, cv2.COLOR_BGR2RGB)
-
-        # Resize for stability
-        img_live = cv2.resize(img_live, (640, 480))
-
-        # Load stored image
-        img_stored = face_recognition.load_image_file(stored_path)
-
-    except Exception as e:
-        print("Image Error:", e)
-        return jsonify({"status": "image_error"})
-
-    # Get encodings
+    # Encode faces
     enc_live = face_recognition.face_encodings(img_live)
     enc_stored = face_recognition.face_encodings(img_stored)
 
     if len(enc_live) == 0:
-        return jsonify({"status": "no_face_live"})
+        return jsonify({"status": "no_live_face"})
 
     if len(enc_stored) == 0:
-        return jsonify({"status": "no_face_stored"})
+        return jsonify({"status": "no_stored_face"})
+
+    live_encoding = enc_live[0]
+    stored_encoding = enc_stored[0]
 
     # Compare
+    results = face_recognition.compare_faces(
+        [stored_encoding],
+        live_encoding,
+        tolerance=0.45
+    )
+
     distance = face_recognition.face_distance(
-        [enc_stored[0]],
-        enc_live[0]
+        [stored_encoding],
+        live_encoding
     )[0]
 
     print("Face distance:", distance)
 
-    # Increase tolerance slightly
-    if distance < 0.6:
+    if results[0] and distance < 0.45:
         return jsonify({"status": "verified"})
     else:
         return jsonify({"status": "failed"})
